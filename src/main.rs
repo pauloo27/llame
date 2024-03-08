@@ -13,10 +13,6 @@ fn main() -> glib::ExitCode {
     let app = gtk::Application::builder().application_id(APP_ID).build();
     app.connect_activate(setup_ui);
 
-    if let Some(path) = env::args().nth(1) {
-        load_css_from_file(path.into());
-    }
-
     let args: [String; 0] = [];
     app.run_with_args(&args)
 }
@@ -30,6 +26,10 @@ fn setup_ui(app: &gtk::Application) {
         .margin_start(5)
         .margin_end(5)
         .build();
+
+    if let Some(path) = env::args().nth(1) {
+        load_css_from_file(path.into());
+    }
 
     let apps = Rc::new(gio::AppInfo::all());
 
