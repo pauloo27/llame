@@ -21,8 +21,6 @@ fn setup_ui(app: &gtk::Application) {
         .margin_end(5)
         .build();
 
-    load_global_css();
-
     let apps = gio::AppInfo::all();
 
     let search = gtk::Entry::builder()
@@ -58,7 +56,13 @@ fn setup_ui(app: &gtk::Application) {
         app_container.append(&icon);
         app_container.append(&lbl);
 
-        apps_container.append(&app_container);
+        let app_btn = gtk::Button::builder().child(&app_container).build();
+
+        app_btn.connect_clicked(move |_| {
+            let _ = app.launch(&[], None::<&gio::AppLaunchContext>);
+        });
+
+        apps_container.append(&app_btn);
     }
 
     main_container.append(&search);
@@ -73,15 +77,4 @@ fn setup_ui(app: &gtk::Application) {
         .build();
 
     window.present();
-}
-
-fn load_global_css() {
-    let provider = gtk::CssProvider::new();
-    provider.load_from_data(include_str!("./style.css"));
-
-    gtk::style_context_add_provider_for_display(
-        &gtk::gdk::Display::default().expect("Could not connect to a display."),
-        &provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-    );
 }
