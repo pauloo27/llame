@@ -31,6 +31,8 @@ fn setup_ui(app: &gtk::Application) {
         load_css_from_file(path.into());
     }
 
+    // TODO: close with esc
+
     let apps = Rc::new(gio::AppInfo::all());
 
     let search = gtk::Entry::builder()
@@ -52,7 +54,7 @@ fn setup_ui(app: &gtk::Application) {
         if search_value == "" {
             show_apps(apps.clone(), apps_container);
         } else {
-            // more clone omg
+            // FIXME: more clone omg
             let filtered_apps: Vec<gio::AppInfo> = apps.iter().filter(|app| app.name().to_lowercase().contains(&search_value)).cloned().collect();
             show_apps(Rc::new(filtered_apps), apps_container);
         }
