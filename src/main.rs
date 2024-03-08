@@ -1,3 +1,6 @@
+use std::rc::Rc;
+
+use glib::clone;
 use gtk::prelude::*;
 use gtk::{gio, glib};
 use gtk4 as gtk;
@@ -21,7 +24,7 @@ fn setup_ui(app: &gtk::Application) {
         .margin_end(5)
         .build();
 
-    let apps = gio::AppInfo::all();
+    let apps = Rc::new(gio::AppInfo::all());
 
     let search = gtk::Entry::builder()
         .primary_icon_name("system-search-symbolic")
@@ -36,7 +39,44 @@ fn setup_ui(app: &gtk::Application) {
         .child(&apps_container)
         .build();
 
-    for app in apps {
+    search.connect_changed(clone!(@strong apps, @weak apps_container => move |search| {
+        let search_value = search.text().to_string().to_lowercase();
+
+        if search_value == "" {
+            show_apps(apps.clone(), apps_container);
+        } else {
+            // more clone omg
+            let filtered_apps: Vec<gio::AppInfo> = apps.iter().filter(|app| app.name().to_lowercase().contains(&search_value)).cloned().collect();
+            show_apps(Rc::new(filtered_apps), apps_container);
+        }
+    }));
+
+    show_apps(apps.clone(), apps_container);
+
+    main_container.append(&search);
+    main_container.append(&scrolled);
+
+    let window = gtk::ApplicationWindow::builder()
+        .application(app)
+        .default_width(350)
+        .default_height(200)
+        .title("Lame")
+        .child(&main_container)
+        .build();
+
+    window.present();
+}
+
+fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
+    let mut next_child = apps_container.first_child();
+
+    while let Some(child) = next_child {
+        next_child = child.next_sibling();
+        apps_container.remove(&child);
+    }
+
+    // FIXME: will clone, shit
+    for app in apps.to_vec() {
         let icon_name = match app.icon() {
             Some(i) => i
                 .to_string()
@@ -64,17 +104,4 @@ fn setup_ui(app: &gtk::Application) {
 
         apps_container.append(&app_btn);
     }
-
-    main_container.append(&search);
-    main_container.append(&scrolled);
-
-    let window = gtk::ApplicationWindow::builder()
-        .application(app)
-        .default_width(350)
-        .default_height(200)
-        .title("Lame")
-        .child(&main_container)
-        .build();
-
-    window.present();
 }
