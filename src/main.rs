@@ -3,8 +3,9 @@ use std::rc::Rc;
 use std::{env, fs, process};
 
 use glib::clone;
+use gtk::gio::{self, ActionEntry};
+use gtk::glib;
 use gtk::prelude::*;
-use gtk::{gio, glib};
 use gtk4 as gtk;
 
 const APP_ID: &str = "cafe.ndo.Lame";
@@ -30,8 +31,6 @@ fn setup_ui(app: &gtk::Application) {
     if let Some(path) = env::args().nth(1) {
         load_css_from_file(path.into());
     }
-
-    // TODO: close with esc
 
     let apps = Rc::new(gio::AppInfo::all());
 
@@ -72,6 +71,8 @@ fn setup_ui(app: &gtk::Application) {
         .title("Lame")
         .child(&main_container)
         .build();
+
+    add_esc_keyboard_action(&app, &window);
 
     window.present();
 }
@@ -131,4 +132,15 @@ fn load_css_from_file(path: PathBuf) {
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
+}
+
+fn add_esc_keyboard_action(app: &gtk::Application, window: &gtk::ApplicationWindow) {
+    let action_close = ActionEntry::builder("esc_close")
+        .activate(|window: &gtk::ApplicationWindow, _, _| {
+            window.close();
+        })
+        .build();
+
+    window.add_action_entries([action_close]);
+    app.set_accels_for_action("win.esc_close", &["Escape"]);
 }
