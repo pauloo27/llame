@@ -1,4 +1,6 @@
+use std::path::PathBuf;
 use std::rc::Rc;
+use std::{env, fs, process};
 
 use glib::clone;
 use gtk::prelude::*;
@@ -11,7 +13,12 @@ fn main() -> glib::ExitCode {
     let app = gtk::Application::builder().application_id(APP_ID).build();
     app.connect_activate(setup_ui);
 
-    app.run()
+    if let Some(path) = env::args().nth(1) {
+        load_css_from_file(path.into());
+    }
+
+    let args: [String; 0] = [];
+    app.run_with_args(&args)
 }
 
 fn setup_ui(app: &gtk::Application) {
@@ -104,4 +111,22 @@ fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
 
         apps_container.append(&app_btn);
     }
+}
+
+fn load_css_from_file(path: PathBuf) {
+    let provider = gtk::CssProvider::new();
+    let data = match fs::read_to_string(path) {
+        Ok(data) => data,
+        Err(err) => {
+            eprintln!("Faile to load css file {err}");
+            process::exit(1);
+        }
+    };
+    provider.load_from_data(&data);
+
+    gtk::style_context_add_provider_for_display(
+        &gtk::gdk::Display::default().expect("Could not connect to a display."),
+        &provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
