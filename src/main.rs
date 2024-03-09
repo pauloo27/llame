@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::{env, fs, process};
@@ -47,15 +48,37 @@ fn setup_ui(app: &gtk::Application) {
         .child(&apps_container)
         .build();
 
-    search.connect_changed(clone!(@strong apps, @weak apps_container => move |search| {
+    let top_result = Rc::new(RefCell::new(apps.first().cloned()));
+
+    search.connect_changed(clone!(@strong apps, @strong top_result, @weak apps_container => move |search| {
         let search_value = search.text().to_string().to_lowercase();
 
         if search_value == "" {
             show_apps(apps.clone(), apps_container);
+
+            if let Some(app) = apps.first().cloned() {
+                top_result.as_ref().borrow_mut().replace(app);
+            } else {
+                top_result.as_ref().borrow_mut().take();
+            }
         } else {
             // FIXME: more clone omg
             let filtered_apps: Vec<gio::AppInfo> = apps.iter().filter(|app| app.name().to_lowercase().contains(&search_value)).cloned().collect();
-            show_apps(Rc::new(filtered_apps), apps_container);
+            let filtered_apps_rc = Rc::new(filtered_apps);
+
+            show_apps(filtered_apps_rc.clone(), apps_container);
+
+            if let Some(app) = filtered_apps_rc.first().cloned() {
+                top_result.as_ref().borrow_mut().replace(app);
+            } else {
+                top_result.as_ref().borrow_mut().take();
+            }
+        }
+    }));
+
+    search.connect_activate(clone!(@strong top_result => move |_| {
+        if let Some(top_result) = top_result.borrow().as_ref() {
+            must_launch(top_result);
         }
     }));
 
@@ -108,18 +131,20 @@ fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
 
         let app_btn = gtk::Button::builder().child(&app_container).build();
 
-        app_btn.connect_clicked(
-            move |_| match app.launch(&[], None::<&gio::AppLaunchContext>) {
-                Ok(_) => process::exit(0),
-                Err(e) => {
-                    eprintln!("Error {e}");
-                    process::exit(1);
-                }
-            },
-        );
+        app_btn.connect_clicked(move |_| must_launch(&app));
 
         apps_container.append(&app_btn);
     }
+}
+
+fn must_launch(app: &gio::AppInfo) {
+    match app.launch(&[], None::<&gio::AppLaunchContext>) {
+        Ok(_) => process::exit(0),
+        Err(e) => {
+            eprintln!("Error {e}");
+            process::exit(1);
+        }
+    };
 }
 
 fn load_css_from_file(path: PathBuf) {
