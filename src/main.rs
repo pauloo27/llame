@@ -108,9 +108,15 @@ fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
 
         let app_btn = gtk::Button::builder().child(&app_container).build();
 
-        app_btn.connect_clicked(move |_| {
-            let _ = app.launch(&[], None::<&gio::AppLaunchContext>);
-        });
+        app_btn.connect_clicked(
+            move |_| match app.launch(&[], None::<&gio::AppLaunchContext>) {
+                Ok(_) => process::exit(0),
+                Err(e) => {
+                    eprintln!("Error {e}");
+                    process::exit(1);
+                }
+            },
+        );
 
         apps_container.append(&app_btn);
     }
