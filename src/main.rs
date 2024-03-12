@@ -32,7 +32,14 @@ fn setup_ui(app: &gtk::Application) {
         load_css_from_file(path.into());
     }
 
-    let apps = Rc::new(gio::AppInfo::all());
+    let all_apps: Rc<Vec<Rc<gio::AppInfo>>> = Rc::new(
+        gio::AppInfo::all()
+            .iter()
+            .map(|a| Rc::new(a.clone()))
+            .collect(),
+    );
+    // will change, when the search filters are applied
+    let displayed_apps = Rc::new(RefCell::new(all_apps.clone()));
 
     let search = gtk::Entry::builder()
         .primary_icon_name("system-search-symbolic")
@@ -47,41 +54,33 @@ fn setup_ui(app: &gtk::Application) {
         .child(&apps_container)
         .build();
 
-    let top_result = Rc::new(RefCell::new(apps.first().cloned()));
+    search.connect_changed(
+        clone!(@strong all_apps, @strong displayed_apps, @weak apps_container => move |search| {
+            let search_value = search.text().to_string().to_lowercase();
 
-    search.connect_changed(clone!(@strong apps, @strong top_result, @weak apps_container => move |search| {
-        let search_value = search.text().to_string().to_lowercase();
-
-        if search_value == "" {
-            show_apps(apps.clone(), apps_container);
-
-            if let Some(app) = apps.first().cloned() {
-                top_result.as_ref().borrow_mut().replace(app);
+            if search_value == "" {
+                show_apps(all_apps.clone(), apps_container);
+                displayed_apps.replace(all_apps.clone());
             } else {
-                top_result.as_ref().borrow_mut().take();
+                let apps: Vec<Rc<gio::AppInfo>> = all_apps.iter()
+                    .filter(|app| app.name().to_lowercase().contains(&search_value)).cloned().collect();
+
+                let apps_rc = Rc::new(apps);
+                show_apps(apps_rc.clone(), apps_container);
+                displayed_apps.replace(apps_rc);
             }
-        } else {
-            // FIXME: more clone omg
-            let filtered_apps: Vec<gio::AppInfo> = apps.iter().filter(|app| app.name().to_lowercase().contains(&search_value)).cloned().collect();
-            let filtered_apps_rc = Rc::new(filtered_apps);
+        }),
+    );
 
-            show_apps(filtered_apps_rc.clone(), apps_container);
-
-            if let Some(app) = filtered_apps_rc.first().cloned() {
-                top_result.as_ref().borrow_mut().replace(app);
-            } else {
-                top_result.as_ref().borrow_mut().take();
-            }
-        }
-    }));
-
-    search.connect_activate(clone!(@strong top_result => move |_| {
-        if let Some(top_result) = top_result.borrow().as_ref() {
+    search.connect_activate(clone!(@strong displayed_apps => move |_| {
+        let apps = displayed_apps.borrow();
+        let top_result = apps.first();
+        if let Some(top_result) = top_result {
             must_launch(top_result);
         }
     }));
 
-    show_apps(apps.clone(), apps_container);
+    show_apps(all_apps.clone(), apps_container);
 
     main_container.append(&search);
     main_container.append(&scrolled);
@@ -99,7 +98,7 @@ fn setup_ui(app: &gtk::Application) {
     window.present();
 }
 
-fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
+fn show_apps(apps: Rc<Vec<Rc<gio::AppInfo>>>, apps_container: gtk::Box) {
     let mut next_child = apps_container.first_child();
 
     while let Some(child) = next_child {
@@ -107,8 +106,7 @@ fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
         apps_container.remove(&child);
     }
 
-    // FIXME: will clone, shit
-    for app in apps.to_vec() {
+    for app in apps.as_ref() {
         let icon_name = match app.icon() {
             Some(i) => i
                 .to_string()
@@ -130,7 +128,7 @@ fn show_apps(apps: Rc<Vec<gio::AppInfo>>, apps_container: gtk::Box) {
 
         let app_btn = gtk::Button::builder().child(&app_container).build();
 
-        app_btn.connect_clicked(move |_| must_launch(&app));
+        app_btn.connect_clicked(clone!(@strong app => move |_| must_launch(&app)));
 
         apps_container.append(&app_btn);
     }
