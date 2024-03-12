@@ -1,15 +1,14 @@
-use std::cell::RefCell;
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::{env, fs, process};
-
 use glib::clone;
 use gtk::gio::{self, ActionEntry};
 use gtk::glib;
 use gtk::prelude::*;
 use gtk4 as gtk;
+use std::cell::RefCell;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::{env, fs, process};
 
-const APP_ID: &str = "cafe.ndo.Lame";
+const APP_ID: &str = "cafe.ndo.Llame";
 
 fn main() -> glib::ExitCode {
     let app = gtk::Application::builder().application_id(APP_ID).build();
