@@ -149,7 +149,7 @@ fn show_apps(apps: Rc<Vec<Rc<gio::AppInfo>>>, apps_container: gtk::Box, preview:
         apps_container.remove(&child);
     }
 
-    for app in apps.as_ref() {
+    for (index, app) in apps.as_ref().iter().enumerate() {
         let icon_name = match app.icon() {
             Some(i) => i
                 .to_string()
@@ -172,6 +172,16 @@ fn show_apps(apps: Rc<Vec<Rc<gio::AppInfo>>>, apps_container: gtk::Box, preview:
         let app_btn = gtk::Button::builder().child(&app_container).build();
 
         app_btn.connect_clicked(clone!(@strong app => move |_| must_launch(&app)));
+
+        if index == 0 {
+            preview.name.set_label(app.name().as_str());
+            preview.description.set_label(
+                &app.description()
+                    .map(|s| s.to_string())
+                    .unwrap_or("".to_string()),
+            );
+            preview.icon.set_icon_name(Some(&icon_name));
+        }
 
         app_btn.connect_has_focus_notify(clone!(@strong app, @strong preview => move |_| {
             preview.name.set_label(app.name().as_str());
