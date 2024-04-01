@@ -140,7 +140,6 @@ impl AppList {
             self.apps_container.remove(&child);
         }
 
-        // borrow some stuff
         let apps = self.displayed_apps.borrow();
         let preview = self.preview.clone();
 
@@ -159,11 +158,8 @@ impl AppList {
                 .spacing(5)
                 .build();
 
-            let icon = gtk::Image::builder().icon_name(icon_name.clone()).build();
-            let lbl = gtk::Label::builder().label(app.name()).build();
-
-            app_container.append(&icon);
-            app_container.append(&lbl);
+            app_container.append(&gtk::Image::builder().icon_name(icon_name.clone()).build());
+            app_container.append(&gtk::Label::builder().label(app.name()).build());
 
             let app_btn = gtk::Button::builder().child(&app_container).build();
 
@@ -179,6 +175,7 @@ impl AppList {
 }
 
 fn get_icon_name_for_app(app: &gio::AppInfo) -> glib::GString {
+    // lord have mercy
     app.icon()
         .map(|i| i.to_string())
         .unwrap_or(Some(DEFAULT_APP_ICON.into()))
