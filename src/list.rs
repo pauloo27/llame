@@ -111,7 +111,7 @@ impl AppList {
         let apps: Vec<Rc<gio::AppInfo>> = self
             .all_apps
             .iter()
-            .filter(|app| app.name().to_lowercase().contains(&search_value))
+            .filter(|app| app.name().to_lowercase().contains(search_value))
             .cloned()
             .collect();
 
@@ -176,7 +176,6 @@ impl AppList {
 
 fn get_icon_name_for_app(app: &gio::AppInfo) -> glib::GString {
     app.icon()
-        .map(|i| i.to_string())
-        .flatten()
+        .and_then(|i| i.to_string())
         .unwrap_or(DEFAULT_APP_ICON.into())
 }

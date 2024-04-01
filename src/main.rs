@@ -48,7 +48,7 @@ fn setup_ui(app: &gtk::Application) {
         .child(&main_container)
         .build();
 
-    keybinds::add_esc_keyboard_action(&app, &window);
+    keybinds::add_esc_keyboard_action(app, &window);
 
     window.present();
 }
