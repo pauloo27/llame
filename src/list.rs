@@ -38,10 +38,7 @@ impl Preview {
 
     pub fn set_preview_for_app(&self, app: &gio::AppInfo) {
         let name = app.name();
-        let description = &app
-            .description()
-            .map(|s| s.to_string())
-            .unwrap_or("".to_string());
+        let description = &app.description().unwrap_or(glib::GString::from(""));
         let icon_name = get_icon_name_for_app(app);
 
         self.name.set_label(&name);
