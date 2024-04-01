@@ -12,12 +12,6 @@ use std::rc::Rc;
 
 const APP_ID: &str = "cafe.ndo.Llame";
 
-pub struct Preview {
-    icon: gtk::Image,
-    name: gtk::Label,
-    description: gtk::Label,
-}
-
 fn main() -> glib::ExitCode {
     let app = gtk::Application::builder().application_id(APP_ID).build();
     app.connect_activate(setup_ui);

@@ -1,5 +1,4 @@
 use crate::apps;
-use crate::Preview;
 use glib::clone;
 use gtk::gio;
 use gtk::glib;
@@ -8,6 +7,48 @@ use gtk::prelude::*;
 use gtk4 as gtk;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+const DEFAULT_APP_ICON: &str = "dialog-question-symbolic";
+
+pub struct Preview {
+    icon: gtk::Image,
+    name: gtk::Label,
+    description: gtk::Label,
+}
+
+impl Preview {
+    pub fn new() -> Preview {
+        Preview {
+            icon: gtk::Image::builder()
+                .icon_size(gtk::IconSize::Large)
+                .build(),
+            name: gtk::Label::builder().build(),
+            description: gtk::Label::builder()
+                .wrap(true)
+                .wrap_mode(pango::WrapMode::WordChar)
+                .build(),
+        }
+    }
+
+    pub fn reset(&self) {
+        self.name.set_label("");
+        self.icon.set_icon_name(None);
+        self.description.set_label("");
+    }
+
+    pub fn set_preview_for_app(&self, app: &gio::AppInfo) {
+        let name = app.name();
+        let description = &app
+            .description()
+            .map(|s| s.to_string())
+            .unwrap_or("".to_string());
+        let icon_name = get_icon_name_for_app(app);
+
+        self.name.set_label(&name);
+        self.description.set_label(description);
+        self.icon.set_from_icon_name(Some(&icon_name));
+    }
+}
 
 pub struct AppList {
     pub container: gtk::Box,
@@ -39,16 +80,7 @@ impl AppList {
             .margin_end(5)
             .build();
 
-        let preview = Preview {
-            icon: gtk::Image::builder()
-                .icon_size(gtk::IconSize::Large)
-                .build(),
-            name: gtk::Label::builder().build(),
-            description: gtk::Label::builder()
-                .wrap(true)
-                .wrap_mode(pango::WrapMode::WordChar)
-                .build(),
-        };
+        let preview = Preview::new();
         let preview = Rc::new(preview);
 
         preview_container.append(&preview.icon);
@@ -115,32 +147,14 @@ impl AppList {
         let apps = self.displayed_apps.borrow();
         let preview = self.preview.clone();
 
-        // if there's no apps, empty the preview
-        if apps.len() == 0 {
-            preview.name.set_label("");
-            preview.description.set_label("");
-            preview.icon.set_icon_name(None);
+        // by default, show the first app in the preview
+        match apps.first() {
+            Some(app) => preview.set_preview_for_app(app),
+            None => preview.reset(),
         }
 
-        for (index, app) in apps.as_ref().iter().enumerate() {
-            let icon_name = match app.icon() {
-                Some(i) => i
-                    .to_string()
-                    .map(|s| s.to_string())
-                    .unwrap_or("".to_string()),
-                None => "dialog-question-symbolic".to_string(),
-            };
-
-            // update the preview, by default, showing the first app in the list
-            if index == 0 {
-                preview.name.set_label(app.name().as_str());
-                preview.description.set_label(
-                    &app.description()
-                        .map(|s| s.to_string())
-                        .unwrap_or("".to_string()),
-                );
-                preview.icon.set_icon_name(Some(&icon_name));
-            }
+        for app in apps.as_ref() {
+            let icon_name = get_icon_name_for_app(app);
 
             // creating a Button(Container(Icon, Label))
             let app_container = gtk::Box::builder()
@@ -159,12 +173,16 @@ impl AppList {
             app_btn.connect_clicked(clone!(@strong app => move |_| apps::must_launch(&app)));
 
             app_btn.connect_has_focus_notify(clone!(@strong app, @strong preview => move |_| {
-                preview.name.set_label(app.name().as_str());
-                preview.description.set_label(&app.description().map(|s| s.to_string()).unwrap_or("".to_string()));
-                preview.icon.set_icon_name(Some(&icon_name));
+                preview.set_preview_for_app(&app);
             }));
 
             self.apps_container.append(&app_btn);
         }
     }
+}
+
+fn get_icon_name_for_app(app: &gio::AppInfo) -> String {
+    app.icon()
+        .map(|i| i.to_string().unwrap_or("".into()).to_string())
+        .unwrap_or(DEFAULT_APP_ICON.into())
 }
