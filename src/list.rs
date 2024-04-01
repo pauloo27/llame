@@ -175,9 +175,8 @@ impl AppList {
 }
 
 fn get_icon_name_for_app(app: &gio::AppInfo) -> glib::GString {
-    // lord have mercy
     app.icon()
         .map(|i| i.to_string())
-        .unwrap_or(Some(DEFAULT_APP_ICON.into()))
+        .flatten()
         .unwrap_or(DEFAULT_APP_ICON.into())
 }
