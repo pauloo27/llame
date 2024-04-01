@@ -19,7 +19,7 @@ pub fn build_search(app_list: Rc<AppList>) -> gtk::Entry {
         }
     }));
 
-    search.connect_activate(clone!(@strong app_list =>move |_| {
+    search.connect_activate(clone!(@strong app_list => move |_| {
         app_list.launch_first();
     }));
 
