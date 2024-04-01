@@ -1,6 +1,8 @@
 # Llame
 
-Lame App Launcher in _Rust btw™️_
+Linux Lame App Launcher.
+
+_wrote in rust btw._
 
 ![Screenshot](./.gitea/screenshot.png)
 
