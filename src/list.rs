@@ -52,7 +52,7 @@ pub struct AppList {
     all_apps: Rc<Vec<Rc<gio::AppInfo>>>,
     preview: Rc<Preview>,
     apps_container: gtk::Box,
-    displayed_apps: Rc<RefCell<Rc<Vec<Rc<gio::AppInfo>>>>>,
+    displayed_apps: RefCell<Rc<Vec<Rc<gio::AppInfo>>>>,
 }
 
 impl AppList {
@@ -97,7 +97,7 @@ impl AppList {
             all_apps: app_list.clone(),
             apps_container,
             preview,
-            displayed_apps: Rc::new(RefCell::new(app_list)),
+            displayed_apps: RefCell::new(app_list),
             container: result_container,
         };
         result.show_results();
