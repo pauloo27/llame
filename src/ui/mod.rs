@@ -1,8 +1,8 @@
+use crate::{config::Config, utils};
+use gtk::glib;
 use gtk::prelude::*;
 use gtk4 as gtk;
 use std::rc::Rc;
-
-use crate::{config::Config, utils};
 
 mod app_list;
 mod css;
@@ -32,6 +32,11 @@ pub fn setup_ui(config: Option<Config>) -> impl Fn(&gtk::Application) + 'static 
             .title("Llame")
             .child(&main_container)
             .build();
+
+        window.connect_close_request(|win| {
+            win.set_visible(false);
+            glib::Propagation::Stop
+        });
 
         let app_list = Rc::new(app_list::AppList::new(window.clone(), utils::load_apps()));
         let search_container = search::build_search(app_list.clone());
