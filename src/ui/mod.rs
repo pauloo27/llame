@@ -25,12 +25,6 @@ pub fn setup_ui(config: Option<Config>) -> impl Fn(&gtk::Application) + 'static 
             css::load_css_from_file(css_file_path).expect("Failed to load CSS file");
         }
 
-        let app_list = Rc::new(app_list::AppList::new(utils::load_apps()));
-        let search_container = search::build_search(app_list.clone());
-
-        main_container.append(&search_container);
-        main_container.append(&app_list.container);
-
         let window = gtk::ApplicationWindow::builder()
             .application(app)
             .default_width(550)
@@ -38,6 +32,12 @@ pub fn setup_ui(config: Option<Config>) -> impl Fn(&gtk::Application) + 'static 
             .title("Llame")
             .child(&main_container)
             .build();
+
+        let app_list = Rc::new(app_list::AppList::new(window.clone(), utils::load_apps()));
+        let search_container = search::build_search(app_list.clone());
+
+        main_container.append(&search_container);
+        main_container.append(&app_list.container);
 
         keybinds::add_esc_keyboard_action(app, &window);
 

@@ -1,8 +1,8 @@
+use anyhow::{Context, Result as AnyResult};
 use gtk::glib;
 use gtk::prelude::*;
 use gtk4 as gtk;
 use gtk4::gio;
-use std::process;
 use std::rc::Rc;
 
 const DEFAULT_APP_ICON: &str = "dialog-question-symbolic";
@@ -20,12 +20,7 @@ pub fn load_apps() -> Vec<Rc<gio::AppInfo>> {
         .collect()
 }
 
-pub fn must_launch(app: &gio::AppInfo) {
-    match app.launch(&[], None::<&gio::AppLaunchContext>) {
-        Ok(_) => process::exit(0),
-        Err(e) => {
-            eprintln!("Error {e}");
-            process::exit(1);
-        }
-    };
+pub fn launch_app(app: &gio::AppInfo) -> AnyResult<()> {
+    app.launch(&[], None::<&gio::AppLaunchContext>)
+        .context("Failed to launch app")
 }

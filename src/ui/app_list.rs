@@ -1,3 +1,4 @@
+use gtk::glib;
 use gtk::{gio, glib::clone};
 use gtk4 as gtk;
 use gtk4::prelude::*;
@@ -10,6 +11,7 @@ use super::preview::Preview;
 
 pub struct AppList {
     pub container: gtk::Box,
+    window: gtk::ApplicationWindow,
     all_apps: Rc<Vec<Rc<gio::AppInfo>>>,
     preview: Rc<Preview>,
     apps_container: gtk::Box,
@@ -17,7 +19,7 @@ pub struct AppList {
 }
 
 impl AppList {
-    pub fn new(app_list: Vec<Rc<gio::AppInfo>>) -> AppList {
+    pub fn new(window: gtk::ApplicationWindow, app_list: Vec<Rc<gio::AppInfo>>) -> AppList {
         let app_list = Rc::new(app_list);
 
         let main_container = gtk::Box::builder()
@@ -53,16 +55,17 @@ impl AppList {
         main_container.append(&scrolled);
         main_container.append(&preview_container);
 
-        let result = AppList {
-            all_apps: app_list.clone(),
+        let app_list = AppList {
             apps_container,
+            window,
             preview,
+            all_apps: app_list.clone(),
             displayed_apps: RefCell::new(app_list),
             container: main_container,
         };
-        result.show_results();
+        app_list.show_results();
 
-        result
+        app_list
     }
 }
 
@@ -88,7 +91,8 @@ impl AppList {
 
     pub fn launch_first(&self) {
         if let Some(app) = self.displayed_apps.borrow().first() {
-            utils::must_launch(app);
+            utils::launch_app(app).expect("Failed to launch app");
+            self.window.set_visible(false);
         }
     }
 }
@@ -125,7 +129,10 @@ impl AppList {
 
             let app_btn = gtk::Button::builder().child(&app_container).build();
 
-            app_btn.connect_clicked(clone!(@strong app => move |_| utils::must_launch(&app)));
+            app_btn.connect_clicked(clone!(@strong app, @weak self.window as window => move |_|
+                utils::launch_app(&app).expect("Failed to launch app");
+                window.set_visible(false);
+            ));
 
             app_btn.connect_has_focus_notify(clone!(@strong app, @strong preview => move |_| {
                 preview.set_preview_for_app(&app);
